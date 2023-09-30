@@ -612,6 +612,7 @@ immediate_options (int argc, char **argv) {
     string s= argv[i];
     if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
     if ((s == "-S") || (s == "-setup")) {
+      remove (simple_url());
       remove (url ("$TEXMACS_HOME_PATH/system/settings.scm"));
       remove (url ("$TEXMACS_HOME_PATH/system/setup.scm"));
       remove (url ("$TEXMACS_HOME_PATH/system/cache") * url_wildcard ("*"));

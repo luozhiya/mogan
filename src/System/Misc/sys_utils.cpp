@@ -153,6 +153,10 @@ get_texmacs_home_path () {
   return path;
 }
 
+url simple_url() {
+  return url{};
+}
+
 array<string>
 evaluate_system (array<string> arg,
                  array<int> fd_in, array<string> in,
