@@ -1,0 +1,38 @@
+name: "build_on_windows"
+description: "Build on Windows"
+inputs:
+  tag_name:
+    description: "Tag name"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.8.6
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: config
+      shell: powershell
+      run: xmake config --yes -vD -m release
+    - name: build
+      shell: powershell
+      run: xmake build -vD research
+    - name: install
+      shell: powershell
+      run: xmake install -vD research
+    - name: Generate Installer
+      shell: powershell
+      run: |
+        xmake pack --yes -vD research
+        cp build/xpack/research/*.exe build/xpack/research/mogan-research-${{ inputs.tag_name }}-windows-x86_64.exe
+        cp build/xpack/research/*.zip build/xpack/research/mogan-research-${{ inputs.tag_name }}-windows-x86_64.zip
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: research-windows
+        path: |
+          build/xpack/research/mogan-research-*.exe
+          build/xpack/research/mogan-research-*.zip

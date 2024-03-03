@@ -1,0 +1,35 @@
+name: "build_on_debian"
+description: "Build on Debian"
+inputs:
+  tag_name:
+    description: "Tag name"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        DEBIAN_FRONTEND=noninteractive apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y gcc git 7zip unzip curl build-essential \
+            fonts-noto-cjk libcurl4-openssl-dev libfreetype-dev libfontconfig-dev \
+            qt6-base-dev libqt6svg6-dev qt6-image-formats-plugins libgit2-dev zlib1g-dev libssl-dev libjpeg62-turbo-dev cmake \
+            fakeroot debhelper
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.8.6
+        actions-cache-folder: "${{ join(matrix.*, '-') }}-xmake-cache"
+    - name: Generate Installer
+      shell: bash
+      run: |
+        packages/debian/package.sh
+        cp ../mogan*.deb mogan-research-${{ inputs.tag_name }}-debian-${{ matrix.debian_ver }}-x86_64.deb
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: research-debian
+        path: mogan-*.deb

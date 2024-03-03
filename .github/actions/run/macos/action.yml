@@ -1,0 +1,42 @@
+name: "build_on_macos"
+description: "Build on MacOS"
+inputs:
+  tag_name:
+    description: "Tag name"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 6.5.3
+        target: "desktop"
+        cache: "true"
+    - uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.8.6
+        actions-cache-folder: "${{ join(matrix.*, '-') }}-xmake-cache"
+    - name: config
+      shell: bash
+      run: xmake config -m release -a ${{ matrix.arch }} -vD --yes
+    - name: build
+      shell: bash
+      run: xmake build -vD --diagnosis research
+    - name: install
+      shell: bash
+      run: xmake install -vD research
+    - name: Generate Installer
+      shell: bash
+      run: |
+        xmake install -vD research_packager
+        cp build/MoganResearch*.dmg build/mogan-research-${{ inputs.tag_name }}-${{ join(matrix.*, '-') }}.dmg
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: research-macos-${{ join(matrix.*, '-') }}
+        path: build/mogan-research-*.dmg
