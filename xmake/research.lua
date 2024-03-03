@@ -28,7 +28,7 @@ local research_files = {
 
 if is_plat("windows") then
     target("research_windows_icon") do
-        set_version(XMACS_VERSION)
+        set_version(XMACS_VERSION, {build = "%Y-%m-%d"})
         set_kind("object")
         add_configfiles("$(projectdir)/packages/windows/resource.rc.in", {
             filename = "resource.rc"

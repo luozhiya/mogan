@@ -1,0 +1,111 @@
+name: CD for Mogan Research
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release"
+        required: false
+        default: nightly
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-alpha
+      - v[0-9]+.[0-9]+.[0-9]+-beta
+
+jobs:
+  tags:
+    runs-on: ubuntu-latest
+    steps:
+      - if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+      - if: github.event_name == 'schedule'
+        run: |
+          echo "TAG_NAME=nightly" >> $GITHUB_ENV
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
+    outputs:
+      tag_name: ${{ env.TAG_NAME }}
+  windows:
+    needs: tags
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/cd/windows
+        with:
+          tag_name: ${{ needs.tags.outputs.tag_name }}
+  ubuntu:
+    needs: tags
+    strategy:
+      matrix:
+        ubuntu_ver: ["22.04"]
+    runs-on: ubuntu-${{ matrix.ubuntu_ver }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/cd/ubuntu
+        with:
+          tag_name: ${{ needs.tags.outputs.tag_name }}
+  debian:
+    needs: tags
+    strategy:
+      matrix:
+        debian_ver: [bookworm]
+    container: debian:${{ matrix.debian_ver }}
+    env:
+      XMAKE_ROOT: y
+      QT_QPA_PLATFORM: offscreen
+      INSTALL_DIR: tmp/build/packages/app.mogan    
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/cd/debian
+        with:
+          tag_name: ${{ needs.tags.outputs.tag_name }}
+  macos:
+    needs: tags
+    strategy:
+      matrix:
+        os: [macos-11, macos-12]
+        arch: [arm64, x86_64]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/cd/macos
+        with:
+          tag_name: ${{ needs.tags.outputs.tag_name }}
+  publish:
+    needs: [tags, windows, ubuntu, debian, macos]
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG_NAME: ${{ needs.tags.outputs.tag_name }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - if: env.TAG_NAME == 'nightly'
+        run: |
+          echo "TITLE=Mogan Research nightly build" >> $GITHUB_ENV
+          echo "PRERELEASE=--prerelease" >> $GITHUB_ENV
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+      - if: env.TAG_NAME != 'nightly'
+        run: |
+          echo "TITLE=Mogan Research $TAG_NAME" >> $GITHUB_ENV
+          echo "PRERELEASE=" >> $GITHUB_ENV
+          gh release delete stable --yes || true
+          git push origin :stable || true
+      - name: Publish release
+        run: |
+          if [ "$TAG_NAME" != "nightly" ]; then
+            gh release create stable $PRERELEASE --title "$TITLE" --target $GITHUB_SHA research-windows/* research-ubuntu-*/* research-debian/* research-macos-*/*
+          fi
+          gh release create $TAG_NAME $PRERELEASE --title "$TITLE" --target $GITHUB_SHA research-windows/* research-ubuntu-*/* research-debian/* research-macos-*/*
