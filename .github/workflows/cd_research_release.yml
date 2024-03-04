@@ -6,11 +6,14 @@ on:
     inputs:
       tag_name:
         description: "Tag name for release"
-        required: true
+        required: false
         default: nightly
   push:
     tags:
-      - "*"
+      - v[0-9]+.[0-9]+.[0-9]+(.[0-9]+)
+      - v[0-9]+.[0-9]+.[0-9]+(-rc[0-9]+)
+      - v[0-9]+.[0-9]+.[0-9]+(-alpha)
+      - v[0-9]+.[0-9]+.[0-9]+(-beta)
 
 jobs:
   tags:
