@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/run/windows
+      - uses: ./.github/actions/cd/windows
         with:
           tag_name: ${{ needs.tags.outputs.tag_name }}
   ubuntu:
@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/run/ubuntu
+      - uses: ./.github/actions/cd/ubuntu
         with:
           tag_name: ${{ needs.tags.outputs.tag_name }}
   debian:
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/run/debian
+      - uses: ./.github/actions/cd/debian
         with:
           tag_name: ${{ needs.tags.outputs.tag_name }}
   macos:
@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/run/macos
+      - uses: ./.github/actions/cd/macos
         with:
           tag_name: ${{ needs.tags.outputs.tag_name }}
   publish:
